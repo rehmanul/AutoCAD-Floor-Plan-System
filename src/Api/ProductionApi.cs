@@ -16,8 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") ?? 
+                      Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection") ??
+                      builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<FloorPlanContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddFloorPlanServices(builder.Configuration);
 
