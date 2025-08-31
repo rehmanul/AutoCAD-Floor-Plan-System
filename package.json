@@ -1,0 +1,19 @@
+{
+  "name": "autocad-floor-plan-analysis-system",
+  "version": "1.0.0",
+  "description": "A production-ready system for processing AutoCAD floor plans with automated analysis and measurements.",
+  "main": "deploy-to-forge.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "form-data": "^4.0.4"
+  }
+}

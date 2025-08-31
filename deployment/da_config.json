@@ -1,0 +1,72 @@
+{
+  "activity": {
+    "id": "ProcessFloorPlanActivity",
+    "commandLine": [
+      "$(engine.path)\\accoreconsole.exe",
+      "/i", "$(args[inputFile].path)",
+      "/s", "$(appbundles[FloorPlanProcessor].path)\\FloorPlanProcessor.bundle\\Contents\\FloorPlanProcessor.dll",
+      "/al", "$(appbundles[FloorPlanProcessor].path)",
+      "/c", "PROCESS_FLOOR_PLAN"
+    ],
+    "parameters": {
+      "inputFile": {
+        "verb": "get",
+        "description": "Input DWG/DXF file"
+      },
+      "finalPlanDwg": {
+        "verb": "put",
+        "description": "Output final plan DWG",
+        "localName": "final_plan.dwg"
+      },
+      "finalPlanPng": {
+        "verb": "put",
+        "description": "Output final plan PNG",
+        "localName": "final_plan.png"
+      },
+      "settings": {
+        "verb": "get",
+        "description": "Processing settings JSON",
+        "localName": "settings.json"
+      }
+    },
+    "engine": "Autodesk.AutoCAD+24",
+    "appbundles": ["FloorPlanProcessor"],
+    "description": "Processes floor plans to generate 3-stage visual progression"
+  },
+  
+  "appbundle": {
+    "id": "FloorPlanProcessor",
+    "engine": "Autodesk.AutoCAD+24",
+    "description": "Floor plan processing bundle with geometry analysis and generation capabilities",
+    "package": {
+      "zip": "FloorPlanProcessor.zip",
+      "contents": {
+        "FloorPlanProcessor.bundle/": {
+          "Contents/": {
+            "FloorPlanProcessor.dll": "Main processing assembly",
+            "FloorPlanProcessor.dll.config": "Configuration file",
+            "PackageContents.xml": "Bundle manifest"
+          }
+        }
+      }
+    }
+  },
+
+  "packageContentsXml": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<ApplicationPackage SchemaVersion=\"1.0\" AutodeskProduct=\"AutoCAD\" ProductType=\"Application\" ProductCode=\"{7D2F5F30-F12E-4CA5-B7EC-8F3CAAB75871}\" Name=\"FloorPlanProcessor\" Description=\"Floor plan processing for 3-stage generation\" Author=\"FloorPlan Systems\" Version=\"1.0.0.0\" FriendlyVersion=\"1.0\" AppVersion=\"24.0\">\n  <CompanyDetails Name=\"FloorPlan Systems\" Phone=\"\" Url=\"\" Email=\"\" />\n  <ComponentEntry AppName=\"FloorPlanProcessor\" Version=\"1.0.0.0\" ModuleName=\"./FloorPlanProcessor.dll\" AppDescription=\"Floor plan processing engine\" LoadOnCommandInvocation=\"True\" LoadOnAutoCADStartup=\"False\">\n    <Commands GroupName=\"FLOORPLAN_COMMANDS\">\n      <Command Global=\"PROCESS_FLOOR_PLAN\" Local=\"PROCESS_FLOOR_PLAN\" />\n    </Commands>\n  </ComponentEntry>\n</ApplicationPackage>",
+
+  "deployment": {
+    "steps": [
+      "1. Compile .NET assembly with AutoCAD references",
+      "2. Create bundle structure with PackageContents.xml", 
+      "3. Zip bundle files",
+      "4. Upload appbundle to APS using POST /da/us-east/v3/appbundles",
+      "5. Create activity definition using POST /da/us-east/v3/activities",
+      "6. Set activity alias to 'prod' version"
+    ],
+    "authentication": {
+      "clientId": "YOUR_FORGE_CLIENT_ID",
+      "clientSecret": "YOUR_FORGE_CLIENT_SECRET",
+      "scope": "code:all"
+    }
+  }
+}

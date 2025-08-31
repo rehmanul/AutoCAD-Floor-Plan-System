@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+
+
+  <ItemGroup>
+    <Compile Remove="bundle\**" />
+    <EmbeddedResource Remove="bundle\**" />
+    <None Remove="bundle\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="accoremgd">
+      <HintPath>C:\Users\HP\Desktop\AutoCAD Floor Plan Analysis System\CDROM1\inc\accoremgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>C:\Users\HP\Desktop\AutoCAD Floor Plan Analysis System\CDROM1\inc\acdbmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>C:\Users\HP\Desktop\AutoCAD Floor Plan Analysis System\CDROM1\inc\acmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

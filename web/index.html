@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor Plan Processor - Professional CAD Processing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .upload-section {
+            margin-bottom: 40px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            background: rgba(102, 126, 234, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone.dragover {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .upload-subtext {
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .settings-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .settings-group {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .settings-group h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .process-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .process-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-section {
+            display: none;
+            margin-bottom: 40px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #555;
+            font-size: 1.1rem;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .result-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .result-preview {
+            width: 100%;
+            height: 200px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            border: 2px solid #e0e0e0;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .download-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .download-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .measurements-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .measurements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .measurement-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .measurement-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .measurement-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .settings-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Floor Plan Processor</h1>
+            <p>Professional CAD processing with Autodesk Platform Services</p>
+        </div>
+
+        <div class="main-card">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop your DWG, DXF, or PDF file here</div>
+                    <div class="upload-subtext">Or click to browse (Max 50MB)</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".dwg,.dxf,.pdf">
+                </div>
+                <div id="selectedFile" style="margin-top: 15px; display: none;">
+                    <strong>Selected:</strong> <span id="fileName"></span>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="settings-section">
+                <div class="settings-group">
+                    <h3>Box Size Distribution</h3>
+                    <div id="boxDistribution">
+                        <div class="distribution-row">
+                            <input type="number" class="dist-percentage" value="10" min="0" max="100">
+                            <span>% between</span>
+                            <input type="number" class="dist-min-area" value="0" min="0">
+                            <span>and</span>
+                            <input type="number" class="dist-max-area" value="1" min="0">
+                            <span>m²</span>
+                        </div>
+                        <div class="distribution-row">
+                            <input type="number" class="dist-percentage" value="25" min="0" max="100">
+                            <span>% between</span>
+                            <input type="number" class="dist-min-area" value="1" min="0">
+                            <span>and</span>
+                            <input type="number" class="dist-max-area" value="3" min="0">
+                            <span>m²</span>
+                        </div>
+                    </div>
+                    <button id="addDistRow" style="margin-top: 10px;">Add Row</button>
+                </div>
+
+                <div class="settings-group">
+                    <h3>Corridor Settings</h3>
+                    <div class="input-group">
+                        <label for="corridorWidth">Corridor Width (mm)</label>
+                        <input type="number" id="corridorWidth" value="1200" min="800" max="2000">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Process Button -->
+            <button class="process-btn" id="processBtn" disabled>
+                Select a file to start processing
+            </button>
+
+            <!-- Progress Section -->
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Initializing...</div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="resultsSection">
+                <h2 style="margin-bottom: 30px; color: #667eea;">Processing Results</h2>
+                
+                <div class="results-grid">
+                    <!-- Final Plan -->
+                    <div class="result-card">
+                        <h3>Final Plan</h3>
+                        <div class="result-preview" id="finalPreview">
+                            🖼️ Final processed plan
+                        </div>
+                        <div class="result-actions">
+                            <a href="#" class="download-btn" id="finalDwgBtn">DWG</a>
+                            <a href="#" class="download-btn" id="finalPngBtn">PNG</a>
+                        </div>
+                    </div>
+
+                    <!-- Measurements -->
+                    <div class="result-card measurements-card">
+                        <h3>📊 Measurements & Analysis</h3>
+                        <div class="measurements-grid">
+                            <div class="measurement-item">
+                                <div class="measurement-value" id="totalArea">0</div>
+                                <div class="measurement-label">Total Area (m²)</div>
+                            </div>
+                            <div class="measurement-item">
+                                <div class="measurement-value" id="walkableArea">0</div>
+                                <div class="measurement-label">Walkable Area (m²)</div>
+                            </div>
+                            <div class="measurement-item">
+                                <div class="measurement-value" id="ilotCount">0</div>
+                                <div class="measurement-label">Number of Ilots</div>
+                            </div>
+                            <div class="measurement-item">
+                                <div class="measurement-value" id="corridorLength">0</div>
+                                <div class="measurement-label">Corridor Length (m)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FloorPlanProcessor {
+            constructor() {
+                this.apiBase = '/api/floorplan';
+                this.currentJobId = null;
+                this.selectedFile = null;
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+                const processBtn = document.getElementById('processBtn');
+                const addDistRowBtn = document.getElementById('addDistRow');
+
+                addDistRowBtn.addEventListener('click', () => {
+                    const newRow = document.createElement('div');
+                    newRow.classList.add('distribution-row');
+                    newRow.innerHTML = `
+                        <input type="number" class="dist-percentage" value="10" min="0" max="100">
+                        <span>% between</span>
+                        <input type="number" class="dist-min-area" value="0" min="0">
+                        <span>and</span>
+                        <input type="number" class="dist-max-area" value="1" min="0">
+                        <span>m²</span>
+                    `;
+                    document.getElementById('boxDistribution').appendChild(newRow);
+                });
+
+                // File upload handling
+                uploadZone.addEventListener('click', () => fileInput.click());
+                uploadZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+                uploadZone.addEventListener('dragleave', () => {
+                    uploadZone.classList.remove('dragover');
+                });
+                uploadZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    this.handleFileSelect(e.dataTransfer.files[0]);
+                });
+
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFileSelect(e.target.files[0]);
+                });
+
+                processBtn.addEventListener('click', () => {
+                    this.processFloorPlan();
+                });
+            }
+
+            handleFileSelect(file) {
+                if (!file) return;
+
+                const validTypes = ['.dwg', '.dxf', '.pdf'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (!validTypes.includes(fileExtension)) {
+                    this.showError('Invalid file type. Please select a DWG, DXF, or PDF file.');
+                    return;
+                }
+
+                if (file.size > 50 * 1024 * 1024) { // 50MB limit
+                    this.showError('File too large. Maximum size is 50MB.');
+                    return;
+                }
+
+                this.selectedFile = file;
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('selectedFile').style.display = 'block';
+                document.getElementById('processBtn').disabled = false;
+                document.getElementById('processBtn').textContent = 'Process Floor Plan';
+                this.hideError();
+            }
+
+            async processFloorPlan() {
+                if (!this.selectedFile) return;
+
+                try {
+                    document.getElementById('processBtn').disabled = true;
+                    document.getElementById('processBtn').textContent = 'Uploading...';
+                    
+                    // Upload file
+                    const uploadResponse = await this.uploadFile();
+                    this.currentJobId = uploadResponse.jobId;
+
+                    // Start processing
+                    const settings = this.getSettings();
+                    await this.startProcessing(settings);
+
+                    // Show progress and poll for updates
+                    this.showProgress();
+                    this.pollJobStatus();
+
+                } catch (error) {
+                    this.showError(error.message);
+                    document.getElementById('processBtn').disabled = false;
+                    document.getElementById('processBtn').textContent = 'Process Floor Plan';
+                }
+            }
+
+            async uploadFile() {
+                const formData = new FormData();
+                formData.append('file', this.selectedFile);
+
+                const response = await fetch(`${this.apiBase}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to upload file');
+                }
+
+                return await response.json();
+            }
+
+            async startProcessing(settings) {
+                const response = await fetch(`${this.apiBase}/process/${this.currentJobId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to start processing');
+                }
+
+                return await response.json();
+            }
+
+            getSettings() {
+                const distributionRows = document.querySelectorAll('.distribution-row');
+                const boxDistribution = [];
+                distributionRows.forEach(row => {
+                    boxDistribution.push({
+                        percentage: parseFloat(row.querySelector('.dist-percentage').value),
+                        minArea: parseFloat(row.querySelector('.dist-min-area').value),
+                        maxArea: parseFloat(row.querySelector('.dist-max-area').value)
+                    });
+                });
+
+                return {
+                    boxDistribution: boxDistribution,
+                    corridorWidth: parseFloat(document.getElementById('corridorWidth').value)
+                };
+            }
+
+            showProgress() {
+                document.getElementById('progressSection').style.display = 'block';
+                document.getElementById('resultsSection').style.display = 'none';
+            }
+
+            hideProgress() {
+                document.getElementById('progressSection').style.display = 'none';
+            }
+
+            async pollJobStatus() {
+                const poll = async () => {
+                    try {
+                        const response = await fetch(`${this.apiBase}/status/${this.currentJobId}`);
+                        const status = await response.json();
+
+                        this.updateProgress(status.progress, status.message);
+
+                        if (status.status === 'Completed') {
+                            this.hideProgress();
+                            await this.loadResults();
+                        } else if (status.status === 'Failed') {
+                            this.showError(status.error || 'Processing failed');
+                            this.hideProgress();
+                            document.getElementById('processBtn').disabled = false;
+                            document.getElementById('processBtn').textContent = 'Process Floor Plan';
+                        } else {
+                            setTimeout(poll, 2000); // Poll every 2 seconds
+                        }
+                    } catch (error) {
+                        this.showError('Failed to check status');
+                        this.hideProgress();
+                    }
+                };
+
+                setTimeout(poll, 1000);
+            }
+
+            updateProgress(percentage, message) {
+                document.getElementById('progressFill').style.width = `${percentage}%`;
+                document.getElementById('progressText').textContent = message;
+            }
+
+            async loadResults() {
+                try {
+                    const response = await fetch(`${this.apiBase}/results/${this.currentJobId}`);
+                    const results = await response.json();
+
+                    this.displayResults(results);
+                    document.getElementById('resultsSection').style.display = 'block';
+                    
+                    // Reset for next file
+                    document.getElementById('processBtn').disabled = false;
+                    document.getElementById('processBtn').textContent = 'Process Another File';
+                } catch (error) {
+                    this.showError('Failed to load results');
+                }
+            }
+
+            displayResults(results) {
+                // Update download links
+                document.getElementById('finalDwgBtn').href = results.finalPlan.dwgUrl;
+                document.getElementById('finalPngBtn').href = results.finalPlan.thumbnailUrl;
+
+                // Update measurements
+                const measurements = results.measurements;
+                document.getElementById('totalArea').textContent = measurements.totalArea.toFixed(1);
+                document.getElementById('walkableArea').textContent = measurements.walkableArea.toFixed(1);
+                document.getElementById('ilotCount').textContent = measurements.numberOfIlots;
+                document.getElementById('corridorLength').textContent = measurements.corridorLength.toFixed(1);
+
+                // Update previews
+                document.getElementById('finalPreview').innerHTML = `<img src="${results.finalPlan.thumbnailUrl}" alt="Final Plan Preview" style="width:100%; height:100%; object-fit:contain;">`;
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+
+            hideError() {
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            new FloorPlanProcessor();
+        });
+    </script>
+</body>
+</html>

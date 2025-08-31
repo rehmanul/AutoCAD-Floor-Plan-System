@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: floorplan-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: floorplan-db
+          property: connectionString
+      - key: ConnectionStrings__Redis
+        fromService:
+          type: redis
+          name: floorplan-redis
+          property: connectionString
+      - key: ConnectionStrings__AzureStorage
+        value: DefaultEndpointsProtocol=https;AccountName=floorplanrender;AccountKey=your_key;EndpointSuffix=core.windows.net
+      - key: Forge__ClientId
+        value: bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r
+      - key: Forge__ClientSecret
+        value: QusNbDYeB6WFl9vzDSq16Gcpbz7rJO2tIMcJBTBV0ro0GRrS2O9s4gRPzT1uVSoS
+
+  - type: redis
+    name: floorplan-redis
+    plan: free
+    region: oregon
+
+databases:
+  - name: floorplan-db
+    databaseName: floorplan_prod
+    user: floorplan_user
+    plan: free
+    region: oregon
