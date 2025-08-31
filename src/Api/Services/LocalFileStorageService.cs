@@ -9,7 +9,7 @@ namespace FloorPlanAPI.Services
         private readonly string _baseUrl;
         private readonly string _storagePath;
 
-        public LocalFileStorageService(IConfiguration configuration)
+        public LocalFileStorageService()
         {
             _baseUrl = "https://autocad-floor-plan-system.onrender.com";
             _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "storage");
