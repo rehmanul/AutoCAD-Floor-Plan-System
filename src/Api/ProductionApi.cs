@@ -62,6 +62,16 @@ app.MapGet("/", () => new {
     endpoints = new[] { "/api/floorplan/upload", "/api/floorplan/process/{jobId}", "/api/floorplan/status/{jobId}", "/api/floorplan/results/{jobId}" }
 });
 
+// Serve uploaded files
+app.MapGet("/files/{fileName}", async (string fileName, IFileStorageService storage) => {
+    try {
+        var stream = await storage.DownloadFileAsync(fileName);
+        return Results.File(stream, "application/octet-stream", fileName);
+    } catch {
+        return Results.NotFound();
+    }
+});
+
 app.MapControllers();
 app.Run();
 
@@ -236,7 +246,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddFloorPlanServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddScoped<IDesignAutomationService, DesignAutomationService>();
-        services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
+        services.AddSingleton<IFileStorageService, LocalFileStorageService>();
         
         services.AddHostedService<JobProcessorService>();
         
