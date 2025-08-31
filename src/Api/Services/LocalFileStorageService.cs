@@ -36,5 +36,14 @@ namespace FloorPlanAPI.Services
             var filePath = Path.Combine(_storagePath, fileName);
             return new FileStream(filePath, FileMode.Open, FileAccess.Read);
         }
+
+        public async Task DeleteFileAsync(string fileName)
+        {
+            var filePath = Path.Combine(_storagePath, fileName);
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
     }
 }
