@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0
 WORKDIR /app
 EXPOSE 10000
-COPY src/Api/MinimalApi.cs ./MinimalApi.cs
+COPY src/Api/MinimalApi.cs ./Program.cs
 COPY web ./web
-ENTRYPOINT ["dotnet", "run", "MinimalApi.cs"]
+RUN dotnet new web --force
+ENTRYPOINT ["dotnet", "run"]
