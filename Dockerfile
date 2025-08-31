@@ -16,5 +16,4 @@ RUN dotnet publish "FloorPlanAPI.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-COPY src/Api/wwwroot ./wwwroot
 ENTRYPOINT ["dotnet", "FloorPlanAPI.dll"]
