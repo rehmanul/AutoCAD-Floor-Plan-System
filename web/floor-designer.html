@@ -212,14 +212,21 @@
         <div class="toolbar">
             <h2>Floor Plan Designer</h2>
             
+            <!-- File Upload -->
+            <div class="tool-section">
+                <h3>1. Upload Floor Plan</h3>
+                <input type="file" id="fileUpload" accept=".dwg,.dxf,.pdf" style="margin-bottom: 10px;">
+                <button class="tool-btn" id="uploadBtn" disabled>Upload & Process</button>
+                <div id="uploadStatus" style="margin-top: 10px; font-size: 0.8rem;"></div>
+            </div>
+
             <!-- Drawing Tools -->
             <div class="tool-section">
-                <h3>Drawing Tools</h3>
+                <h3>2. Design Tools</h3>
                 <button class="tool-btn" id="selectTool">Select/Move</button>
                 <button class="tool-btn" id="wallTool">Draw Walls</button>
                 <button class="tool-btn" id="roomTool">Draw Rooms</button>
                 <button class="tool-btn" id="ilotTool">Place Ilots</button>
-                <button class="tool-btn" id="corridorTool">Generate Corridors</button>
             </div>
 
             <!-- Grid Settings -->
@@ -261,7 +268,7 @@
 
             <!-- Corridor Settings -->
             <div class="tool-section">
-                <h3>Corridor Settings</h3>
+                <h3>3. Generate Corridors</h3>
                 <div class="corridor-settings">
                     <div class="input-group">
                         <label>Width (mm)</label>
@@ -384,12 +391,17 @@
             }
 
             setupEventListeners() {
+                // File upload
+                document.getElementById('fileUpload').addEventListener('change', (e) => {
+                    document.getElementById('uploadBtn').disabled = !e.target.files[0];
+                });
+                document.getElementById('uploadBtn').addEventListener('click', () => this.uploadAndProcess());
+
                 // Tool buttons
                 document.getElementById('selectTool').addEventListener('click', () => this.setTool('select'));
                 document.getElementById('wallTool').addEventListener('click', () => this.setTool('wall'));
                 document.getElementById('roomTool').addEventListener('click', () => this.setTool('room'));
                 document.getElementById('ilotTool').addEventListener('click', () => this.setTool('ilot'));
-                document.getElementById('corridorTool').addEventListener('click', () => this.setTool('corridor'));
 
                 // Canvas events
                 this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
@@ -969,6 +981,117 @@
                 link.download = 'floor-plan-project.json';
                 link.href = URL.createObjectURL(blob);
                 link.click();
+            }
+
+            async uploadAndProcess() {
+                const fileInput = document.getElementById('fileUpload');
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                const statusDiv = document.getElementById('uploadStatus');
+                const uploadBtn = document.getElementById('uploadBtn');
+                
+                try {
+                    uploadBtn.disabled = true;
+                    statusDiv.textContent = 'Uploading...';
+                    
+                    // Upload file
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const uploadResponse = await fetch('/api/floorplan/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) throw new Error('Upload failed');
+                    const uploadResult = await uploadResponse.json();
+                    
+                    statusDiv.textContent = 'Processing...';
+                    
+                    // Process with settings
+                    const settings = {
+                        boxDistribution: [
+                            { percentage: 60, minArea: 10, maxArea: 50 },
+                            { percentage: 40, minArea: 5, maxArea: 25 }
+                        ],
+                        corridorWidth: parseInt(document.getElementById('corridorWidth').value)
+                    };
+                    
+                    const processResponse = await fetch(`/api/floorplan/process/${uploadResult.jobId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    
+                    if (!processResponse.ok) throw new Error('Processing failed');
+                    
+                    statusDiv.textContent = 'Loading results...';
+                    
+                    // Get results
+                    const resultsResponse = await fetch(`/api/floorplan/results/${uploadResult.jobId}`);
+                    if (!resultsResponse.ok) throw new Error('Failed to get results');
+                    
+                    const results = await resultsResponse.json();
+                    this.loadProcessedFloorPlan(results);
+                    
+                    statusDiv.textContent = 'Complete! Design loaded.';
+                    
+                } catch (error) {
+                    statusDiv.textContent = 'Error: ' + error.message;
+                } finally {
+                    uploadBtn.disabled = false;
+                }
+            }
+
+            loadProcessedFloorPlan(results) {
+                // Clear existing elements
+                this.elements = [];
+                
+                // Create sample floor plan based on measurements
+                const measurements = results.measurements;
+                const scale = 10; // 10 pixels per mm
+                
+                // Create main room boundary
+                const roomWidth = Math.sqrt(measurements.totalArea) * 1000; // Convert to mm
+                const roomHeight = roomWidth * 0.7;
+                
+                this.elements.push({
+                    id: Date.now(),
+                    type: 'room',
+                    x1: 100,
+                    y1: 100,
+                    x2: 100 + roomWidth / scale,
+                    y2: 100 + roomHeight / scale,
+                    width: roomWidth / scale,
+                    height: roomHeight / scale
+                });
+                
+                // Create ilots based on count
+                const ilotSize = 2000 / scale; // 2m ilots
+                const spacing = 500 / scale;
+                const cols = Math.ceil(Math.sqrt(measurements.numberOfIlots));
+                
+                for (let i = 0; i < measurements.numberOfIlots; i++) {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    
+                    this.elements.push({
+                        id: Date.now() + i,
+                        type: 'ilot',
+                        x1: 200 + col * (ilotSize + spacing),
+                        y1: 200 + row * (ilotSize + spacing),
+                        x2: 200 + col * (ilotSize + spacing) + ilotSize,
+                        y2: 200 + row * (ilotSize + spacing) + ilotSize,
+                        width: ilotSize,
+                        height: ilotSize,
+                        ilotType: ['storage', 'office', 'meeting', 'utility'][i % 4]
+                    });
+                }
+                
+                this.zoomToFit();
+                this.render();
+                this.updateMeasurements();
             }
 
             loadProject() {
