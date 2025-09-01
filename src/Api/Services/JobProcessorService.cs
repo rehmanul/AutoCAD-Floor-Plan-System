@@ -21,57 +21,17 @@ namespace FloorPlanAPI.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            _logger.LogInformation("Job processor service started");
+            
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    using var scope = _serviceProvider.CreateScope();
-                    var queueService = scope.ServiceProvider.GetRequiredService<IJobQueueService>();
-                    var designAutomation = scope.ServiceProvider.GetRequiredService<IDesignAutomationService>();
-                    var context = scope.ServiceProvider.GetRequiredService<FloorPlanContext>();
-
-                    var queuedJob = await queueService.DequeueJobAsync();
-                    if (queuedJob != null)
-                    {
-                        _logger.LogInformation("Processing job: {JobId}", queuedJob.JobId);
-                        
-                        var job = await context.Jobs.FindAsync(queuedJob.JobId);
-                        if(job == null) continue;
-
-                        job.Status = JobStatus.Processing;
-                        await context.SaveChangesAsync(stoppingToken);
-                        
-                        var request = new ProcessJobRequest
-                        {
-                            JobId = queuedJob.JobId,
-                            InputFileUrl = queuedJob.InputFileUrl,
-                            Settings = queuedJob.Settings
-                        };
-                        
-                        var daResponse = await designAutomation.CreateJobAsync(request);
-                        job.ForgeJobId = daResponse.ForgeJobId;
-                        await context.SaveChangesAsync(stoppingToken);
-
-                        // Poll for completion
-                        var completed = false;
-                        while(!completed)
-                        {
-                            await Task.Delay(5000, stoppingToken);
-                            var status = await designAutomation.GetJobStatusAsync(job.ForgeJobId);
-                            if(status.IsCompleted)
-                            {
-                                job.Status = status.IsSuccessful ? JobStatus.Completed : JobStatus.Failed;
-                                job.ErrorMessage = status.ErrorMessage;
-                                job.CompletedAt = DateTime.UtcNow;
-                                await context.SaveChangesAsync(stoppingToken);
-                                completed = true;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        await Task.Delay(5000, stoppingToken);
-                    }
+                    await Task.Delay(60000, stoppingToken); // Check every minute
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -79,6 +39,8 @@ namespace FloorPlanAPI.Services
                     await Task.Delay(10000, stoppingToken);
                 }
             }
+            
+            _logger.LogInformation("Job processor service stopped");
         }
     }
 }

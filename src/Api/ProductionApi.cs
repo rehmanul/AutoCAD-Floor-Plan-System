@@ -54,10 +54,13 @@ if (Directory.Exists(webPath))
     });
 }
 
-app.MapGet("/", () => new { 
+app.MapGet("/", () => Results.Redirect("/web/floor-designer.html"));
+
+app.MapGet("/api", () => new { 
     message = "AutoCAD Floor Plan Analysis System", 
     version = "1.0.0", 
     swagger = "/swagger",
+    designer = "/web/floor-designer.html",
     endpoints = new[] { "/api/floorplan/upload", "/api/floorplan/process/{jobId}", "/api/floorplan/status/{jobId}", "/api/floorplan/results/{jobId}" }
 });
 

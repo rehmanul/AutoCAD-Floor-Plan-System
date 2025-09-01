@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor Plan Designer - Interactive CAD Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .toolbar {
+            width: 300px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .toolbar h2 {
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+
+        .tool-section {
+            margin-bottom: 30px;
+        }
+
+        .tool-section h3 {
+            margin-bottom: 15px;
+            color: #ecf0f1;
+            font-size: 1rem;
+        }
+
+        .tool-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #34495e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tool-btn:hover {
+            background: #3498db;
+        }
+
+        .tool-btn.active {
+            background: #e74c3c;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #34495e;
+            border-radius: 3px;
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: white;
+        }
+
+        #designCanvas {
+            border: 1px solid #ddd;
+            cursor: crosshair;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .ilot-properties {
+            position: absolute;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+        }
+
+        .ilot-properties h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .ilot-properties button {
+            margin: 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-save {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .measurements-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            min-width: 200px;
+        }
+
+        .measurements-panel h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .measurement-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .export-section {
+            border-top: 1px solid #34495e;
+            padding-top: 20px;
+        }
+
+        .export-btn {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .export-btn:hover {
+            background: #2ecc71;
+        }
+
+        .corridor-settings {
+            background: #34495e;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .grid-toggle {
+            margin-bottom: 20px;
+        }
+
+        .grid-toggle input[type="checkbox"] {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <h2>Floor Plan Designer</h2>
+            
+            <!-- Drawing Tools -->
+            <div class="tool-section">
+                <h3>Drawing Tools</h3>
+                <button class="tool-btn" id="selectTool">Select/Move</button>
+                <button class="tool-btn" id="wallTool">Draw Walls</button>
+                <button class="tool-btn" id="roomTool">Draw Rooms</button>
+                <button class="tool-btn" id="ilotTool">Place Ilots</button>
+                <button class="tool-btn" id="corridorTool">Generate Corridors</button>
+            </div>
+
+            <!-- Grid Settings -->
+            <div class="tool-section">
+                <h3>Grid & View</h3>
+                <div class="grid-toggle">
+                    <input type="checkbox" id="showGrid" checked>
+                    <label for="showGrid">Show Grid</label>
+                </div>
+                <div class="input-group">
+                    <label>Grid Size (mm)</label>
+                    <input type="number" id="gridSize" value="500" min="100" max="2000">
+                </div>
+                <button class="tool-btn" id="zoomFit">Zoom to Fit</button>
+                <button class="tool-btn" id="clearAll">Clear All</button>
+            </div>
+
+            <!-- Ilot Settings -->
+            <div class="tool-section">
+                <h3>Ilot Settings</h3>
+                <div class="input-group">
+                    <label>Width (mm)</label>
+                    <input type="number" id="ilotWidth" value="2000" min="500" max="5000">
+                </div>
+                <div class="input-group">
+                    <label>Height (mm)</label>
+                    <input type="number" id="ilotHeight" value="1500" min="500" max="5000">
+                </div>
+                <div class="input-group">
+                    <label>Type</label>
+                    <select id="ilotType">
+                        <option value="storage">Storage</option>
+                        <option value="office">Office</option>
+                        <option value="meeting">Meeting Room</option>
+                        <option value="utility">Utility</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Corridor Settings -->
+            <div class="tool-section">
+                <h3>Corridor Settings</h3>
+                <div class="corridor-settings">
+                    <div class="input-group">
+                        <label>Width (mm)</label>
+                        <input type="number" id="corridorWidth" value="1200" min="800" max="2500">
+                    </div>
+                    <div class="input-group">
+                        <label>Algorithm</label>
+                        <select id="corridorAlgorithm">
+                            <option value="shortest">Shortest Path</option>
+                            <option value="grid">Grid Pattern</option>
+                            <option value="organic">Organic Flow</option>
+                        </select>
+                    </div>
+                    <button class="tool-btn" id="generateCorridors">Generate Corridors</button>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="export-section">
+                <h3>Export & Save</h3>
+                <button class="export-btn" id="exportDWG">Export to DWG</button>
+                <button class="export-btn" id="exportPDF">Export to PDF</button>
+                <button class="export-btn" id="saveProject">Save Project</button>
+                <button class="export-btn" id="loadProject">Load Project</button>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="canvas-container">
+            <canvas id="designCanvas"></canvas>
+            
+            <!-- Canvas Overlay Info -->
+            <div class="canvas-overlay">
+                <div>Tool: <span id="currentTool">Select</span></div>
+                <div>Mouse: <span id="mouseCoords">0, 0</span></div>
+                <div>Zoom: <span id="zoomLevel">100%</span></div>
+            </div>
+
+            <!-- Measurements Panel -->
+            <div class="measurements-panel">
+                <h4>Measurements</h4>
+                <div class="measurement-item">
+                    <span>Total Area:</span>
+                    <span id="totalArea">0 m²</span>
+                </div>
+                <div class="measurement-item">
+                    <span>Ilots:</span>
+                    <span id="ilotCount">0</span>
+                </div>
+                <div class="measurement-item">
+                    <span>Corridors:</span>
+                    <span id="corridorLength">0 m</span>
+                </div>
+                <div class="measurement-item">
+                    <span>Efficiency:</span>
+                    <span id="spaceEfficiency">0%</span>
+                </div>
+            </div>
+
+            <!-- Ilot Properties Dialog -->
+            <div class="ilot-properties" id="ilotProperties">
+                <h4>Ilot Properties</h4>
+                <div class="input-group">
+                    <label>Width (mm)</label>
+                    <input type="number" id="editIlotWidth" min="500" max="5000">
+                </div>
+                <div class="input-group">
+                    <label>Height (mm)</label>
+                    <input type="number" id="editIlotHeight" min="500" max="5000">
+                </div>
+                <div class="input-group">
+                    <label>Type</label>
+                    <select id="editIlotType">
+                        <option value="storage">Storage</option>
+                        <option value="office">Office</option>
+                        <option value="meeting">Meeting Room</option>
+                        <option value="utility">Utility</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="btn-save" id="saveIlot">Save</button>
+                    <button class="btn-delete" id="deleteIlot">Delete</button>
+                    <button class="btn-cancel" id="cancelEdit">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FloorPlanDesigner {
+            constructor() {
+                this.canvas = document.getElementById('designCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.currentTool = 'select';
+                this.isDrawing = false;
+                this.startPoint = null;
+                this.elements = [];
+                this.selectedElement = null;
+                this.zoom = 1;
+                this.panX = 0;
+                this.panY = 0;
+                this.gridSize = 500;
+                this.showGrid = true;
+                
+                this.setupCanvas();
+                this.setupEventListeners();
+                this.render();
+            }
+
+            setupCanvas() {
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            resizeCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+                this.render();
+            }
+
+            setupEventListeners() {
+                // Tool buttons
+                document.getElementById('selectTool').addEventListener('click', () => this.setTool('select'));
+                document.getElementById('wallTool').addEventListener('click', () => this.setTool('wall'));
+                document.getElementById('roomTool').addEventListener('click', () => this.setTool('room'));
+                document.getElementById('ilotTool').addEventListener('click', () => this.setTool('ilot'));
+                document.getElementById('corridorTool').addEventListener('click', () => this.setTool('corridor'));
+
+                // Canvas events
+                this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+                this.canvas.addEventListener('wheel', (e) => this.onWheel(e));
+                this.canvas.addEventListener('dblclick', (e) => this.onDoubleClick(e));
+
+                // Grid toggle
+                document.getElementById('showGrid').addEventListener('change', (e) => {
+                    this.showGrid = e.target.checked;
+                    this.render();
+                });
+
+                // Grid size
+                document.getElementById('gridSize').addEventListener('input', (e) => {
+                    this.gridSize = parseInt(e.target.value);
+                    this.render();
+                });
+
+                // Generate corridors
+                document.getElementById('generateCorridors').addEventListener('click', () => this.generateCorridors());
+
+                // Clear all
+                document.getElementById('clearAll').addEventListener('click', () => this.clearAll());
+
+                // Zoom fit
+                document.getElementById('zoomFit').addEventListener('click', () => this.zoomToFit());
+
+                // Export buttons
+                document.getElementById('exportDWG').addEventListener('click', () => this.exportToDWG());
+                document.getElementById('exportPDF').addEventListener('click', () => this.exportToPDF());
+                document.getElementById('saveProject').addEventListener('click', () => this.saveProject());
+                document.getElementById('loadProject').addEventListener('click', () => this.loadProject());
+
+                // Ilot properties
+                document.getElementById('saveIlot').addEventListener('click', () => this.saveIlotProperties());
+                document.getElementById('deleteIlot').addEventListener('click', () => this.deleteSelectedIlot());
+                document.getElementById('cancelEdit').addEventListener('click', () => this.hideIlotProperties());
+            }
+
+            setTool(tool) {
+                this.currentTool = tool;
+                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(tool + 'Tool').classList.add('active');
+                document.getElementById('currentTool').textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
+                this.canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+            }
+
+            onMouseDown(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.zoom;
+                const y = (e.clientY - rect.top - this.panY) / this.zoom;
+                
+                this.startPoint = { x, y };
+                this.isDrawing = true;
+
+                if (this.currentTool === 'select') {
+                    this.selectedElement = this.getElementAt(x, y);
+                    if (this.selectedElement && this.selectedElement.type === 'ilot') {
+                        this.showIlotProperties(this.selectedElement, e.clientX, e.clientY);
+                    } else {
+                        this.hideIlotProperties();
+                    }
+                }
+            }
+
+            onMouseMove(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.zoom;
+                const y = (e.clientY - rect.top - this.panY) / this.zoom;
+                
+                document.getElementById('mouseCoords').textContent = `${Math.round(x)}, ${Math.round(y)}`;
+
+                if (this.isDrawing && this.startPoint) {
+                    this.render();
+                    this.drawPreview(this.startPoint.x, this.startPoint.y, x, y);
+                }
+            }
+
+            onMouseUp(e) {
+                if (!this.isDrawing || !this.startPoint) return;
+
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.zoom;
+                const y = (e.clientY - rect.top - this.panY) / this.zoom;
+
+                this.createElement(this.startPoint.x, this.startPoint.y, x, y);
+                this.isDrawing = false;
+                this.startPoint = null;
+                this.render();
+                this.updateMeasurements();
+            }
+
+            onWheel(e) {
+                e.preventDefault();
+                const rect = this.canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = Math.max(0.1, Math.min(5, this.zoom * zoomFactor));
+                
+                this.panX = mouseX - (mouseX - this.panX) * (newZoom / this.zoom);
+                this.panY = mouseY - (mouseY - this.panY) * (newZoom / this.zoom);
+                this.zoom = newZoom;
+                
+                document.getElementById('zoomLevel').textContent = Math.round(this.zoom * 100) + '%';
+                this.render();
+            }
+
+            onDoubleClick(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left - this.panX) / this.zoom;
+                const y = (e.clientY - rect.top - this.panY) / this.zoom;
+                
+                const element = this.getElementAt(x, y);
+                if (element && element.type === 'ilot') {
+                    this.showIlotProperties(element, e.clientX, e.clientY);
+                }
+            }
+
+            createElement(x1, y1, x2, y2) {
+                const element = {
+                    id: Date.now(),
+                    type: this.currentTool,
+                    x1: Math.min(x1, x2),
+                    y1: Math.min(y1, y2),
+                    x2: Math.max(x1, x2),
+                    y2: Math.max(y1, y2),
+                    width: Math.abs(x2 - x1),
+                    height: Math.abs(y2 - y1)
+                };
+
+                if (this.currentTool === 'ilot') {
+                    element.ilotType = document.getElementById('ilotType').value;
+                    element.width = parseInt(document.getElementById('ilotWidth').value);
+                    element.height = parseInt(document.getElementById('ilotHeight').value);
+                    element.x2 = element.x1 + element.width;
+                    element.y2 = element.y1 + element.height;
+                }
+
+                this.elements.push(element);
+            }
+
+            drawPreview(x1, y1, x2, y2) {
+                this.ctx.save();
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.strokeStyle = '#3498db';
+                this.ctx.lineWidth = 2;
+                
+                if (this.currentTool === 'wall') {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x1, y1);
+                    this.ctx.lineTo(x2, y2);
+                    this.ctx.stroke();
+                } else {
+                    this.ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+                }
+                
+                this.ctx.restore();
+            }
+
+            getElementAt(x, y) {
+                for (let i = this.elements.length - 1; i >= 0; i--) {
+                    const element = this.elements[i];
+                    if (x >= element.x1 && x <= element.x2 && y >= element.y1 && y <= element.y2) {
+                        return element;
+                    }
+                }
+                return null;
+            }
+
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.ctx.save();
+                this.ctx.translate(this.panX, this.panY);
+                this.ctx.scale(this.zoom, this.zoom);
+
+                if (this.showGrid) {
+                    this.drawGrid();
+                }
+
+                this.elements.forEach(element => this.drawElement(element));
+                
+                this.ctx.restore();
+            }
+
+            drawGrid() {
+                this.ctx.strokeStyle = '#e0e0e0';
+                this.ctx.lineWidth = 1;
+                
+                const startX = Math.floor(-this.panX / this.zoom / this.gridSize) * this.gridSize;
+                const startY = Math.floor(-this.panY / this.zoom / this.gridSize) * this.gridSize;
+                const endX = startX + (this.canvas.width / this.zoom) + this.gridSize;
+                const endY = startY + (this.canvas.height / this.zoom) + this.gridSize;
+
+                for (let x = startX; x <= endX; x += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, startY);
+                    this.ctx.lineTo(x, endY);
+                    this.ctx.stroke();
+                }
+
+                for (let y = startY; y <= endY; y += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(startX, y);
+                    this.ctx.lineTo(endX, y);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawElement(element) {
+                this.ctx.save();
+
+                switch (element.type) {
+                    case 'wall':
+                        this.ctx.strokeStyle = '#2c3e50';
+                        this.ctx.lineWidth = 10;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(element.x1, element.y1);
+                        this.ctx.lineTo(element.x2, element.y2);
+                        this.ctx.stroke();
+                        break;
+
+                    case 'room':
+                        this.ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
+                        this.ctx.strokeStyle = '#3498db';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.fillRect(element.x1, element.y1, element.width, element.height);
+                        this.ctx.strokeRect(element.x1, element.y1, element.width, element.height);
+                        break;
+
+                    case 'ilot':
+                        const colors = {
+                            storage: '#e74c3c',
+                            office: '#f39c12',
+                            meeting: '#9b59b6',
+                            utility: '#1abc9c'
+                        };
+                        this.ctx.fillStyle = colors[element.ilotType] || '#95a5a6';
+                        this.ctx.strokeStyle = '#2c3e50';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.fillRect(element.x1, element.y1, element.width, element.height);
+                        this.ctx.strokeRect(element.x1, element.y1, element.width, element.height);
+                        
+                        // Label
+                        this.ctx.fillStyle = 'white';
+                        this.ctx.font = '14px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText(
+                            element.ilotType.toUpperCase(),
+                            element.x1 + element.width / 2,
+                            element.y1 + element.height / 2
+                        );
+                        break;
+
+                    case 'corridor':
+                        this.ctx.fillStyle = 'rgba(149, 165, 166, 0.3)';
+                        this.ctx.strokeStyle = '#95a5a6';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.fillRect(element.x1, element.y1, element.width, element.height);
+                        this.ctx.strokeRect(element.x1, element.y1, element.width, element.height);
+                        break;
+                }
+
+                if (element === this.selectedElement) {
+                    this.ctx.strokeStyle = '#e74c3c';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.strokeRect(element.x1 - 5, element.y1 - 5, element.width + 10, element.height + 10);
+                }
+
+                this.ctx.restore();
+            }
+
+            generateCorridors() {
+                const corridorWidth = parseInt(document.getElementById('corridorWidth').value);
+                const algorithm = document.getElementById('corridorAlgorithm').value;
+                
+                // Remove existing corridors
+                this.elements = this.elements.filter(el => el.type !== 'corridor');
+                
+                const ilots = this.elements.filter(el => el.type === 'ilot');
+                
+                if (ilots.length < 2) {
+                    alert('Need at least 2 ilots to generate corridors');
+                    return;
+                }
+
+                switch (algorithm) {
+                    case 'shortest':
+                        this.generateShortestPathCorridors(ilots, corridorWidth);
+                        break;
+                    case 'grid':
+                        this.generateGridCorridors(ilots, corridorWidth);
+                        break;
+                    case 'organic':
+                        this.generateOrganicCorridors(ilots, corridorWidth);
+                        break;
+                }
+
+                this.render();
+                this.updateMeasurements();
+            }
+
+            generateShortestPathCorridors(ilots, width) {
+                for (let i = 0; i < ilots.length - 1; i++) {
+                    const ilot1 = ilots[i];
+                    const ilot2 = ilots[i + 1];
+                    
+                    const centerX1 = ilot1.x1 + ilot1.width / 2;
+                    const centerY1 = ilot1.y1 + ilot1.height / 2;
+                    const centerX2 = ilot2.x1 + ilot2.width / 2;
+                    const centerY2 = ilot2.y1 + ilot2.height / 2;
+                    
+                    // Horizontal corridor
+                    this.elements.push({
+                        id: Date.now() + Math.random(),
+                        type: 'corridor',
+                        x1: Math.min(centerX1, centerX2) - width / 2,
+                        y1: centerY1 - width / 2,
+                        x2: Math.max(centerX1, centerX2) + width / 2,
+                        y2: centerY1 + width / 2,
+                        width: Math.abs(centerX2 - centerX1) + width,
+                        height: width
+                    });
+                    
+                    // Vertical corridor
+                    this.elements.push({
+                        id: Date.now() + Math.random(),
+                        type: 'corridor',
+                        x1: centerX2 - width / 2,
+                        y1: Math.min(centerY1, centerY2) - width / 2,
+                        x2: centerX2 + width / 2,
+                        y2: Math.max(centerY1, centerY2) + width / 2,
+                        width: width,
+                        height: Math.abs(centerY2 - centerY1) + width
+                    });
+                }
+            }
+
+            generateGridCorridors(ilots, width) {
+                // Create a grid-based corridor system
+                const minX = Math.min(...ilots.map(i => i.x1)) - 1000;
+                const maxX = Math.max(...ilots.map(i => i.x2)) + 1000;
+                const minY = Math.min(...ilots.map(i => i.y1)) - 1000;
+                const maxY = Math.max(...ilots.map(i => i.y2)) + 1000;
+                
+                const spacing = 3000; // 3m spacing
+                
+                // Horizontal corridors
+                for (let y = minY; y <= maxY; y += spacing) {
+                    this.elements.push({
+                        id: Date.now() + Math.random(),
+                        type: 'corridor',
+                        x1: minX,
+                        y1: y - width / 2,
+                        x2: maxX,
+                        y2: y + width / 2,
+                        width: maxX - minX,
+                        height: width
+                    });
+                }
+                
+                // Vertical corridors
+                for (let x = minX; x <= maxX; x += spacing) {
+                    this.elements.push({
+                        id: Date.now() + Math.random(),
+                        type: 'corridor',
+                        x1: x - width / 2,
+                        y1: minY,
+                        x2: x + width / 2,
+                        y2: maxY,
+                        width: width,
+                        height: maxY - minY
+                    });
+                }
+            }
+
+            generateOrganicCorridors(ilots, width) {
+                // Create organic flowing corridors
+                const centers = ilots.map(ilot => ({
+                    x: ilot.x1 + ilot.width / 2,
+                    y: ilot.y1 + ilot.height / 2
+                }));
+                
+                // Create curved paths between centers
+                for (let i = 0; i < centers.length - 1; i++) {
+                    const start = centers[i];
+                    const end = centers[i + 1];
+                    
+                    const midX = (start.x + end.x) / 2 + (Math.random() - 0.5) * 1000;
+                    const midY = (start.y + end.y) / 2 + (Math.random() - 0.5) * 1000;
+                    
+                    // Create segments for curved path
+                    const segments = 5;
+                    for (let j = 0; j < segments; j++) {
+                        const t1 = j / segments;
+                        const t2 = (j + 1) / segments;
+                        
+                        const x1 = this.bezierPoint(start.x, midX, end.x, t1);
+                        const y1 = this.bezierPoint(start.y, midY, end.y, t1);
+                        const x2 = this.bezierPoint(start.x, midX, end.x, t2);
+                        const y2 = this.bezierPoint(start.y, midY, end.y, t2);
+                        
+                        this.elements.push({
+                            id: Date.now() + Math.random(),
+                            type: 'corridor',
+                            x1: Math.min(x1, x2) - width / 2,
+                            y1: Math.min(y1, y2) - width / 2,
+                            x2: Math.max(x1, x2) + width / 2,
+                            y2: Math.max(y1, y2) + width / 2,
+                            width: Math.abs(x2 - x1) + width,
+                            height: Math.abs(y2 - y1) + width
+                        });
+                    }
+                }
+            }
+
+            bezierPoint(p0, p1, p2, t) {
+                return (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
+            }
+
+            showIlotProperties(ilot, x, y) {
+                const dialog = document.getElementById('ilotProperties');
+                dialog.style.display = 'block';
+                dialog.style.left = x + 'px';
+                dialog.style.top = y + 'px';
+                
+                document.getElementById('editIlotWidth').value = ilot.width;
+                document.getElementById('editIlotHeight').value = ilot.height;
+                document.getElementById('editIlotType').value = ilot.ilotType;
+                
+                this.selectedElement = ilot;
+            }
+
+            hideIlotProperties() {
+                document.getElementById('ilotProperties').style.display = 'none';
+                this.selectedElement = null;
+                this.render();
+            }
+
+            saveIlotProperties() {
+                if (!this.selectedElement) return;
+                
+                this.selectedElement.width = parseInt(document.getElementById('editIlotWidth').value);
+                this.selectedElement.height = parseInt(document.getElementById('editIlotHeight').value);
+                this.selectedElement.ilotType = document.getElementById('editIlotType').value;
+                this.selectedElement.x2 = this.selectedElement.x1 + this.selectedElement.width;
+                this.selectedElement.y2 = this.selectedElement.y1 + this.selectedElement.height;
+                
+                this.hideIlotProperties();
+                this.render();
+                this.updateMeasurements();
+            }
+
+            deleteSelectedIlot() {
+                if (!this.selectedElement) return;
+                
+                this.elements = this.elements.filter(el => el.id !== this.selectedElement.id);
+                this.hideIlotProperties();
+                this.render();
+                this.updateMeasurements();
+            }
+
+            updateMeasurements() {
+                const ilots = this.elements.filter(el => el.type === 'ilot');
+                const corridors = this.elements.filter(el => el.type === 'corridor');
+                
+                const totalArea = ilots.reduce((sum, ilot) => sum + (ilot.width * ilot.height / 1000000), 0);
+                const corridorLength = corridors.reduce((sum, corridor) => sum + Math.max(corridor.width, corridor.height) / 1000, 0);
+                
+                document.getElementById('totalArea').textContent = totalArea.toFixed(1) + ' m²';
+                document.getElementById('ilotCount').textContent = ilots.length;
+                document.getElementById('corridorLength').textContent = corridorLength.toFixed(1) + ' m';
+                
+                const efficiency = totalArea > 0 ? ((totalArea / (totalArea + corridorLength * 1.2)) * 100) : 0;
+                document.getElementById('spaceEfficiency').textContent = efficiency.toFixed(1) + '%';
+            }
+
+            clearAll() {
+                if (confirm('Clear all elements?')) {
+                    this.elements = [];
+                    this.selectedElement = null;
+                    this.hideIlotProperties();
+                    this.render();
+                    this.updateMeasurements();
+                }
+            }
+
+            zoomToFit() {
+                if (this.elements.length === 0) return;
+                
+                const minX = Math.min(...this.elements.map(el => el.x1));
+                const minY = Math.min(...this.elements.map(el => el.y1));
+                const maxX = Math.max(...this.elements.map(el => el.x2));
+                const maxY = Math.max(...this.elements.map(el => el.y2));
+                
+                const padding = 100;
+                const width = maxX - minX + padding * 2;
+                const height = maxY - minY + padding * 2;
+                
+                const scaleX = this.canvas.width / width;
+                const scaleY = this.canvas.height / height;
+                this.zoom = Math.min(scaleX, scaleY, 2);
+                
+                this.panX = (this.canvas.width - width * this.zoom) / 2 - (minX - padding) * this.zoom;
+                this.panY = (this.canvas.height - height * this.zoom) / 2 - (minY - padding) * this.zoom;
+                
+                document.getElementById('zoomLevel').textContent = Math.round(this.zoom * 100) + '%';
+                this.render();
+            }
+
+            exportToDWG() {
+                const data = {
+                    elements: this.elements,
+                    settings: {
+                        corridorWidth: document.getElementById('corridorWidth').value,
+                        gridSize: this.gridSize
+                    }
+                };
+                
+                // In a real implementation, this would send to the backend
+                console.log('Exporting to DWG:', data);
+                alert('DWG export functionality would be implemented here');
+            }
+
+            exportToPDF() {
+                // Create a temporary canvas for export
+                const exportCanvas = document.createElement('canvas');
+                exportCanvas.width = 1920;
+                exportCanvas.height = 1080;
+                const exportCtx = exportCanvas.getContext('2d');
+                
+                // Render to export canvas
+                exportCtx.fillStyle = 'white';
+                exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+                
+                // Scale and center the design
+                this.zoomToFit();
+                exportCtx.save();
+                exportCtx.translate(this.panX, this.panY);
+                exportCtx.scale(this.zoom, this.zoom);
+                
+                this.elements.forEach(element => {
+                    const originalCtx = this.ctx;
+                    this.ctx = exportCtx;
+                    this.drawElement(element);
+                    this.ctx = originalCtx;
+                });
+                
+                exportCtx.restore();
+                
+                // Download as image (PDF would require additional library)
+                const link = document.createElement('a');
+                link.download = 'floor-plan.png';
+                link.href = exportCanvas.toDataURL();
+                link.click();
+            }
+
+            saveProject() {
+                const project = {
+                    elements: this.elements,
+                    settings: {
+                        gridSize: this.gridSize,
+                        showGrid: this.showGrid,
+                        zoom: this.zoom,
+                        panX: this.panX,
+                        panY: this.panY
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.download = 'floor-plan-project.json';
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            }
+
+            loadProject() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const project = JSON.parse(e.target.result);
+                            this.elements = project.elements || [];
+                            
+                            if (project.settings) {
+                                this.gridSize = project.settings.gridSize || 500;
+                                this.showGrid = project.settings.showGrid !== false;
+                                this.zoom = project.settings.zoom || 1;
+                                this.panX = project.settings.panX || 0;
+                                this.panY = project.settings.panY || 0;
+                                
+                                document.getElementById('gridSize').value = this.gridSize;
+                                document.getElementById('showGrid').checked = this.showGrid;
+                                document.getElementById('zoomLevel').textContent = Math.round(this.zoom * 100) + '%';
+                            }
+                            
+                            this.render();
+                            this.updateMeasurements();
+                        } catch (error) {
+                            alert('Error loading project file');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new FloorPlanDesigner();
+        });
+    </script>
+</body>
+</html>
