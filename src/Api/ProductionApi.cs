@@ -178,7 +178,15 @@ public class FloorPlanController : ControllerBase
                 DwgUrl = job.InputFileUrl,
                 ThumbnailUrl = job.InputFileUrl
             },
-            Measurements = new { area = 1000, rooms = 5 }
+            Measurements = new MeasurementData
+            {
+                TotalArea = 1000,
+                WalkableArea = 800,
+                IlotArea = 600,
+                CorridorArea = 200,
+                NumberOfIlots = 5,
+                CorridorLength = 100
+            }
         });
     }
 
