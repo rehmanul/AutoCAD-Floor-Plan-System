@@ -20,6 +20,11 @@ namespace FloorPlanAPI.Services
         {
             var filePath = Path.Combine(_storagePath, fileName);
             
+            // Create directory if it doesn't exist
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+            
             using var fileStream = new FileStream(filePath, FileMode.Create);
             await content.CopyToAsync(fileStream);
             
