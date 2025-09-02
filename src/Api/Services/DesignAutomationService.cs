@@ -63,14 +63,11 @@ namespace FloorPlanAPI.Services
 
             var jobPayload = new
             {
-                activityId = "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r.ProcessFloorPlanActivity+$LATEST",
+                activityId = "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r.SimpleFloorPlan+1",
                 arguments = new Dictionary<string, object>
                 {
                     { "inputFile", new { url = request.InputFileUrl } },
-                    { "settingsFile", new { url = settingsUrl } },
-                    { "finalPlanDwg", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/final_plan.dwg", TimeSpan.FromHours(1), true) } },
-                    { "finalPlanPng", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/final_plan.png", TimeSpan.FromHours(1), true) } },
-                    { "measurements", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/measurements.json", TimeSpan.FromHours(1), true) } }
+                    { "outputFile", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/result.dwg", TimeSpan.FromHours(1), true) } }
                 }
             };
 
