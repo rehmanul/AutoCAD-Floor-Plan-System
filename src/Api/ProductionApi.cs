@@ -68,12 +68,22 @@ app.MapGet("/api", () => new {
 });
 
 // Serve uploaded files
-app.MapGet("/files/{fileName}", async (string fileName, IFileStorageService storage) => {
+app.MapGet("/files/{*filePath}", async (string filePath, IFileStorageService storage) => {
     try {
-        var stream = await storage.DownloadFileAsync(fileName);
-        return Results.File(stream, "application/octet-stream", fileName);
+        var stream = await storage.DownloadFileAsync(filePath);
+        return Results.File(stream, "application/octet-stream", Path.GetFileName(filePath));
     } catch {
         return Results.NotFound();
+    }
+});
+
+// File upload endpoint for Autodesk results
+app.MapPut("/files/{*filePath}", async (string filePath, HttpRequest request, IFileStorageService storage) => {
+    try {
+        await storage.UploadFileAsync(filePath, request.Body);
+        return Results.Ok();
+    } catch (Exception ex) {
+        return Results.Problem(ex.Message);
     }
 });
 
