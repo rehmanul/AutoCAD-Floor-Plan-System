@@ -1026,7 +1026,10 @@
                     
                     if (!processResponse.ok) throw new Error('Processing failed');
                     
-                    statusDiv.textContent = 'Loading results...';
+                    statusDiv.textContent = 'Waiting for completion...';
+                    
+                    // Poll for completion
+                    await this.waitForCompletion(uploadResult.jobId, statusDiv);
                     
                     // Get results
                     const resultsResponse = await fetch(`/api/floorplan/results/${uploadResult.jobId}`);
@@ -1092,6 +1095,29 @@
                 this.zoomToFit();
                 this.render();
                 this.updateMeasurements();
+            }
+
+            async waitForCompletion(jobId, statusDiv) {
+                const maxAttempts = 60; // 5 minutes max
+                let attempts = 0;
+                
+                while (attempts < maxAttempts) {
+                    const statusResponse = await fetch(`/api/floorplan/status/${jobId}`);
+                    const status = await statusResponse.json();
+                    
+                    statusDiv.textContent = `Processing... ${status.progress}% - ${status.message}`;
+                    
+                    if (status.status === 'Completed') {
+                        return;
+                    } else if (status.status === 'Failed') {
+                        throw new Error(status.error || 'Processing failed');
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+                    attempts++;
+                }
+                
+                throw new Error('Processing timeout');
             }
 
             loadProject() {
