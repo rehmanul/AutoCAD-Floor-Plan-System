@@ -44,7 +44,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 // Serve static files from web directory
-var webPath = Path.Combine(Directory.GetCurrentDirectory(), "web");
+var webPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "web");
 if (Directory.Exists(webPath))
 {
     app.UseStaticFiles(new StaticFileOptions
@@ -290,6 +290,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddFloorPlanServices(this IServiceCollection services, IConfiguration config)
     {
+        services.AddScoped<IAdvancedDesignAutomationService, AdvancedDesignAutomationService>();
         services.AddScoped<IDesignAutomationService, DesignAutomationService>();
         services.AddSingleton<IFileStorageService, LocalFileStorageService>();
         

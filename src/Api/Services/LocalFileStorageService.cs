@@ -26,24 +26,25 @@ namespace FloorPlanAPI.Services
             return $"{_baseUrl}/files/{fileName}";
         }
 
-        public async Task<string> GetSignedUrlAsync(string fileName, TimeSpan expiry, bool forWrite = false)
+        public Task<string> GetSignedUrlAsync(string fileName, TimeSpan expiry, bool forWrite = false)
         {
-            return $"{_baseUrl}/files/{fileName}";
+            return Task.FromResult($"{_baseUrl}/files/{fileName}");
         }
 
-        public async Task<Stream> DownloadFileAsync(string fileName)
+        public Task<Stream> DownloadFileAsync(string fileName)
         {
             var filePath = Path.Combine(_storagePath, fileName);
-            return new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            return Task.FromResult<Stream>(new FileStream(filePath, FileMode.Open, FileAccess.Read));
         }
 
-        public async Task DeleteFileAsync(string fileName)
+        public Task DeleteFileAsync(string fileName)
         {
             var filePath = Path.Combine(_storagePath, fileName);
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
             }
+            return Task.CompletedTask;
         }
     }
 }
