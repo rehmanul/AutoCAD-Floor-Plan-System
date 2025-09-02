@@ -63,7 +63,7 @@ namespace FloorPlanAPI.Services
 
             var jobPayload = new
             {
-                activityId = "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r.ProcessFloorPlanActivity+LATEST",
+                activityId = "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r.FloorPlanActivity+1",
                 arguments = new Dictionary<string, object>
                 {
                     { "inputFile", new { url = request.InputFileUrl } },
