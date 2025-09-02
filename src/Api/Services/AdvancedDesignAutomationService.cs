@@ -39,7 +39,7 @@ namespace FloorPlanAPI.Services
                 ["scope"] = "code:all data:read data:write bucket:create bucket:read"
             });
 
-            using var resp = await _http.PostAsync("https://developer.api.autodesk.com/authentication/v1/authenticate", content);
+            using var resp = await _http.PostAsync("https://developer.api.autodesk.com/authentication/v2/token", content);
             var body = await resp.Content.ReadAsStringAsync();
             
             if (!resp.IsSuccessStatusCode)
@@ -59,11 +59,11 @@ namespace FloorPlanAPI.Services
 
             var payload = new
             {
-                activityId = "AutoCAD.PlotToPDF+latest",
+                activityId = "AutoCAD.PlotToPDF+25_0",
                 arguments = new Dictionary<string, object?>
                 {
-                    ["inputFile"] = new { url = inputFileUrl },
-                    ["outputFile"] = outputHeaders == null
+                    ["HostDwg"] = new { url = inputFileUrl },
+                    ["Result"] = outputHeaders == null
                         ? new { verb = "put", url = outputFileUrl }
                         : new { verb = "put", url = outputFileUrl, headers = outputHeaders }
                 }

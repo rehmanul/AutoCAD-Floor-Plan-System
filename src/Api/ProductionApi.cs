@@ -213,8 +213,11 @@ public class FloorPlanController : ControllerBase
         if (!_jobs.TryGetValue(jobId, out var job))
             return NotFound("Job not found");
 
+        if (job.Status == JobStatus.Processing)
+            return BadRequest("Job still processing");
+        
         if (job.Status != JobStatus.Completed)
-            return BadRequest("Job not completed yet");
+            return BadRequest($"Job status: {job.Status}. Error: {job.ErrorMessage}");
 
         try
         {
