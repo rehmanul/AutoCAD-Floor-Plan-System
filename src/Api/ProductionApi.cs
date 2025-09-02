@@ -44,7 +44,10 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 // Serve static files from web directory
-var webPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "web");
+var webPath = Path.Combine(Directory.GetCurrentDirectory(), "web");
+if (!Directory.Exists(webPath))
+    webPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "web");
+
 if (Directory.Exists(webPath))
 {
     app.UseStaticFiles(new StaticFileOptions
