@@ -34,8 +34,8 @@ namespace FloorPlanAPI.Services
             _logger = logger;
             _storageService = storageService;
             _httpClient = new HttpClient();
-            _clientId = _config["Forge:ClientId"] ?? Environment.GetEnvironmentVariable("Forge__ClientId")!;
-            _clientSecret = _config["Forge:ClientSecret"] ?? Environment.GetEnvironmentVariable("Forge__ClientSecret")!;
+            _clientId = _config["Forge:ClientId"] ?? Environment.GetEnvironmentVariable("FORGE_CLIENT_ID") ?? "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r";
+            _clientSecret = _config["Forge:ClientSecret"] ?? Environment.GetEnvironmentVariable("FORGE_CLIENT_SECRET") ?? "QusNbDYeB6WFl9vzDSq16Gcpbz7rJO2tIMcJBTBV0ro0GRrS2O9s4gRPzT1uVSoS";
         }
 
         private async Task<string> GetAccessTokenAsync()
@@ -63,11 +63,14 @@ namespace FloorPlanAPI.Services
 
             var jobPayload = new
             {
-                activityId = "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r.FloorPlanActivity+1",
+                activityId = "bZCKOFynve2w4rpzNYmooBYAGuqxKWelBTiGcfdoSUpVlD0r.ProcessFloorPlanActivity+LATEST",
                 arguments = new Dictionary<string, object>
                 {
                     { "inputFile", new { url = request.InputFileUrl } },
-                    { "outputFile", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/output.dwg", TimeSpan.FromHours(1), true) } }
+                    { "settingsFile", new { url = settingsUrl } },
+                    { "finalPlanDwg", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/final_plan.dwg", TimeSpan.FromHours(1), true) } },
+                    { "finalPlanPng", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/final_plan.png", TimeSpan.FromHours(1), true) } },
+                    { "measurements", new { verb = "put", url = await _storageService.GetSignedUrlAsync($"results/{request.JobId}/measurements.json", TimeSpan.FromHours(1), true) } }
                 }
             };
 
@@ -123,15 +126,23 @@ namespace FloorPlanAPI.Services
 
         public async Task<JobResultsResponse> GetJobResultsAsync(string jobId)
         {
-            var measurementsJson = await _storageService.DownloadFileAsync($"results/{jobId}/measurements.json");
-            var measurements = await JsonSerializer.DeserializeAsync<MeasurementData>(measurementsJson);
-
-            return new JobResultsResponse
+            try
             {
-                FinalPlanDwg = $"results/{jobId}/final_plan.dwg",
-                FinalPlanPng = $"results/{jobId}/final_plan.png",
-                Measurements = measurements!
-            };
+                var measurementsJson = await _storageService.DownloadFileAsync($"results/{jobId}/measurements.json");
+                var measurements = await JsonSerializer.DeserializeAsync<MeasurementData>(measurementsJson);
+
+                return new JobResultsResponse
+                {
+                    FinalPlanDwg = await _storageService.GetSignedUrlAsync($"results/{jobId}/final_plan.dwg", TimeSpan.FromHours(1), false),
+                    FinalPlanPng = await _storageService.GetSignedUrlAsync($"results/{jobId}/final_plan.png", TimeSpan.FromHours(1), false),
+                    Measurements = measurements!
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get job results for {JobId}", jobId);
+                throw;
+            }
         }
     }
 

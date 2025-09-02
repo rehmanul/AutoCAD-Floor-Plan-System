@@ -145,13 +145,33 @@ public class FloorPlanController : ControllerBase
         if (!_jobs.TryGetValue(jobId, out var job))
             return NotFound("Job not found");
 
-        job.Status = JobStatus.Completed;
-        job.Settings = System.Text.Json.JsonSerializer.Serialize(settings);
-        
-        return Ok(new { 
-            message = "Processing completed",
-            estimatedTime = "Instant"
-        });
+        try
+        {
+            job.Status = JobStatus.Processing;
+            job.Settings = System.Text.Json.JsonSerializer.Serialize(settings);
+            
+            var request = new ProcessJobRequest
+            {
+                JobId = jobId,
+                InputFileUrl = job.InputFileUrl,
+                Settings = settings
+            };
+            
+            var daResponse = await _designAutomationService.CreateJobAsync(request);
+            job.ForgeJobId = daResponse.ForgeJobId;
+            
+            return Ok(new { 
+                message = "Processing started with Autodesk Design Automation",
+                forgeJobId = daResponse.ForgeJobId,
+                estimatedTime = "2-5 minutes"
+            });
+        }
+        catch (Exception ex)
+        {
+            job.Status = JobStatus.Failed;
+            job.ErrorMessage = ex.Message;
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 
     [HttpGet("status/{jobId}")]
@@ -160,11 +180,30 @@ public class FloorPlanController : ControllerBase
         if (!_jobs.TryGetValue(jobId, out var job))
             return NotFound("Job not found");
 
+        if (!string.IsNullOrEmpty(job.ForgeJobId) && job.Status == JobStatus.Processing)
+        {
+            try
+            {
+                var forgeStatus = await _designAutomationService.GetJobStatusAsync(job.ForgeJobId);
+                if (forgeStatus.IsCompleted)
+                {
+                    job.Status = forgeStatus.IsSuccessful ? JobStatus.Completed : JobStatus.Failed;
+                    job.ErrorMessage = forgeStatus.ErrorMessage;
+                    job.CompletedAt = DateTime.UtcNow;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking Forge status: {ex.Message}");
+            }
+        }
+
         return Ok(new {
             status = job.Status.ToString(),
             progress = GetProgressPercentage(job.Status),
             message = GetStatusMessage(job.Status),
-            error = job.ErrorMessage
+            error = job.ErrorMessage,
+            forgeJobId = job.ForgeJobId
         });
     }
 
@@ -174,23 +213,50 @@ public class FloorPlanController : ControllerBase
         if (!_jobs.TryGetValue(jobId, out var job))
             return NotFound("Job not found");
 
-        return Ok(new ProcessResultsResponse
+        if (job.Status != JobStatus.Completed)
+            return BadRequest("Job not completed yet");
+
+        try
         {
-            FinalPlan = new PlanResult
+            if (!string.IsNullOrEmpty(job.ForgeJobId))
             {
-                DwgUrl = job.InputFileUrl,
-                ThumbnailUrl = job.InputFileUrl
-            },
-            Measurements = new MeasurementData
-            {
-                TotalArea = 1000,
-                WalkableArea = 800,
-                IlotArea = 600,
-                CorridorArea = 200,
-                NumberOfIlots = 5,
-                CorridorLength = 100
+                var results = await _designAutomationService.GetJobResultsAsync(jobId);
+                return Ok(new ProcessResultsResponse
+                {
+                    FinalPlan = new PlanResult
+                    {
+                        DwgUrl = results.FinalPlanDwg,
+                        ThumbnailUrl = results.FinalPlanPng
+                    },
+                    Measurements = results.Measurements
+                });
             }
-        });
+            else
+            {
+                // Fallback for jobs without Forge processing
+                return Ok(new ProcessResultsResponse
+                {
+                    FinalPlan = new PlanResult
+                    {
+                        DwgUrl = job.InputFileUrl,
+                        ThumbnailUrl = job.InputFileUrl
+                    },
+                    Measurements = new MeasurementData
+                    {
+                        TotalArea = 1000,
+                        WalkableArea = 800,
+                        IlotArea = 600,
+                        CorridorArea = 200,
+                        NumberOfIlots = 5,
+                        CorridorLength = 100
+                    }
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
 
     private int GetProgressPercentage(JobStatus status)
